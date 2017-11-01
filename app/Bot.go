@@ -55,12 +55,12 @@ func (bot *TgBot) startBot() {
 					found := false
 					for _, season := range seasons {
 						if season.Season == seasonNum {
-							found = true
 							links, err := bot.Seasonvar.GetDownloadLink(season.Id, seriesNum)
 							if err != nil {
 								log.Println(err)
 							} else {
 								for _, link := range links {
+									found = true
 									message := tgbotapi.NewMessage(update.Message.Chat.ID, season.SerialName + " " + strconv.Itoa(season.Year) + " " + link.Translation)
 									bot.Api.Send(message)
 
