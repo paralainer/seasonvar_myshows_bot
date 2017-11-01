@@ -5,11 +5,6 @@ import (
 	"gopkg.in/telegram-bot-api.v4"
 	"strings"
 	"strconv"
-	"net/http"
-	"fmt"
-	"io"
-	"os"
-	"net/url"
 )
 
 type TgBot struct {
@@ -61,15 +56,17 @@ func (bot *TgBot) startBot() {
 					for _, season := range seasons {
 						if season.Season == seasonNum {
 							found = true
-							link, err := bot.Seasonvar.GetDownloadLink(season.Id, seriesNum)
+							links, err := bot.Seasonvar.GetDownloadLink(season.Id, seriesNum)
 							if err != nil {
 								log.Println(err)
 							} else {
-								message := tgbotapi.NewMessage(update.Message.Chat.ID, season.SerialName + " " + strconv.Itoa(season.Year))
-								bot.Api.Send(message)
+								for _, link := range links {
+									message := tgbotapi.NewMessage(update.Message.Chat.ID, season.SerialName + " " + strconv.Itoa(season.Year) + " " + link.Translation)
+									bot.Api.Send(message)
 
-								message = tgbotapi.NewMessage(update.Message.Chat.ID, link.String())
-								bot.Api.Send(message)
+									message = tgbotapi.NewMessage(update.Message.Chat.ID, link.Url.String())
+									bot.Api.Send(message)
+								}
 							}
 							break
 						}
@@ -84,34 +81,6 @@ func (bot *TgBot) startBot() {
 			}
 		}
 	}
-
-
-}
-
-func saveFile(link *url.URL) int64 {
-	response, err := http.Get(link.String())
-	if err != nil {
-		fmt.Println("Error while downloading", link, "-", err)
-		return 0
-	}
-	defer response.Body.Close()
-
-
-	output, err := os.Create("output/test.mp4")
-	if err != nil {
-		fmt.Println("Error while creating file", "-", err)
-		return 0
-	}
-	defer output.Close()
-
-	n, err := io.Copy(output, response.Body)
-	if err != nil {
-		fmt.Println("Error while downloading", link, "-", err)
-		return 0
-	}
-
-	fmt.Println(n, "bytes downloaded.")
-	return n
 }
 
 

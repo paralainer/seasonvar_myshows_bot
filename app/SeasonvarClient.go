@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log"
 	"io/ioutil"
+	"strings"
 )
 
 const apiUrl = "http://api.seasonvar.ru"
@@ -16,6 +17,11 @@ type Season struct{
 	Season int
 	Year int
 	Id int
+}
+
+type DownloadLink struct {
+	Url *url.URL
+	Translation string
 }
 
 type SeasonvarClient struct {
@@ -29,7 +35,7 @@ func (sc *SeasonvarClient) postParams() *url.Values {
 }
 
 
-func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) (*url.URL, error) {
+func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) ([]DownloadLink, error) {
 	params := sc.postParams()
 	params.Add("command", "getSeason")
 	params.Add("season_id", strconv.Itoa(seasonId))
@@ -44,14 +50,41 @@ func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) (*url
 		log.Println("Error parsing json")
 		return nil, err
 	}
+	result := []DownloadLink{}
+	season := dat["playlist"].([]interface{})
+	log.Println(season)
+	for _, s := range season {
+		series := s.(map[string]interface{})
+		num, err := strconv.Atoi(strings.Split(series["name"].(string), " ")[0])
+		if err != nil {
+			continue
+		}
 
-	series := dat["playlist"].([]interface{})
-	linkString := series[seriesNumber].(map[string]interface{})["link"].(string)
-	link, err := url.Parse(linkString)
-	if err != nil {
-		return nil, err
+		if num != seriesNumber {
+			continue
+		}
+
+		linkString := series["link"].(string)
+		link, err := url.Parse(linkString)
+		if err != nil {
+			return nil, err
+		}
+
+		t := series["perevod"]
+		translation := "Original"
+		if t != nil {
+			translation = t.(string)
+		}
+
+		result = append(result, DownloadLink{
+			Url: link,
+			Translation: translation,
+		})
+
 	}
-	return link, nil
+
+
+	return result, nil
 }
 
 func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
