@@ -19,7 +19,7 @@ func StartBot(token string, seasonvar *SeasonvarClient) {
 		log.Panic(err)
 	}
 
-	botApi.Debug = true
+	botApi.Debug = false
 
 	bot := &TgBot{
 		Api:       botApi,

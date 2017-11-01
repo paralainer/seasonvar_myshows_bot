@@ -52,7 +52,6 @@ func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) ([]Do
 	}
 	result := []DownloadLink{}
 	season := dat["playlist"].([]interface{})
-	log.Println(season)
 	for _, s := range season {
 		series := s.(map[string]interface{})
 		num, err := strconv.Atoi(strings.Split(series["name"].(string), " ")[0])
