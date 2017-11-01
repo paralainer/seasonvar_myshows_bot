@@ -47,8 +47,8 @@ func (bot *TgBot) startBot() {
 			if strings.Contains(text, "\n") {
 				lines := strings.Split(text, "\n")
 				name := strings.Trim(strings.Split(lines[0], "/show")[0], " ")
-				seasonNum, _ := strconv.Atoi(lines[3][1:3])
-				seriesNum, _ := strconv.Atoi(lines[3][4:6])
+				seasonNum, _ := strconv.Atoi(lines[2][1:3])
+				seriesNum, _ := strconv.Atoi(lines[2][4:6])
 				bot.sendSeries(update.Message.Chat.ID, name, seasonNum, seriesNum)
 			} else {
 				bot.parseSimpleMessage(text, update)
