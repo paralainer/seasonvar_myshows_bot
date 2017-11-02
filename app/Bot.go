@@ -53,6 +53,7 @@ func (bot *TgBot) startBot() {
 	for update := range updates {
 		if update.Message != nil {
 			text := update.Message.Text
+			log.Println("Query:" + text)
 			chatId := update.Message.Chat.ID
 			matches := MyShowsUnseenRegexp.FindStringSubmatch(text)
 
