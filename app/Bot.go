@@ -5,7 +5,13 @@ import (
 	"gopkg.in/telegram-bot-api.v4"
 	"strings"
 	"strconv"
+	"regexp"
+	"fmt"
 )
+
+var MyShowsUnseenRegexp = regexp.MustCompile(`(.*) /show_\d+\n.*\ns(\d+)e(\d+).*`)
+var MyShowsNewRegexp = regexp.MustCompile(`Новый эпизод сериала (.*)\n.*s(\d+)e(\d+).*`)
+var SearchRegexp = regexp.MustCompile(`(.*):\s*(\d+)\s*:\s*(\d+)\s*`)
 
 type TgBot struct {
 	Api       *tgbotapi.BotAPI
@@ -29,9 +35,10 @@ func StartBot(token string, seasonvar *SeasonvarClient) {
 	bot.startBot()
 }
 
+
+
 func (bot *TgBot) startBot() {
 	log.Printf("Authorized on account %s", bot.Api.Self.UserName)
-
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -41,32 +48,42 @@ func (bot *TgBot) startBot() {
 		log.Panic(err)
 	}
 
+
+
 	for update := range updates {
 		if update.Message != nil {
 			text := update.Message.Text
-			if strings.Contains(text, "\n") {
-				lines := strings.Split(text, "\n")
-				name := strings.Trim(strings.Split(lines[0], "/show")[0], " ")
-				seasonNum, _ := strconv.Atoi(lines[2][1:3])
-				seriesNum, _ := strconv.Atoi(lines[2][4:6])
-				bot.sendSeries(update.Message.Chat.ID, name, seasonNum, seriesNum)
-			} else {
-				bot.parseSimpleMessage(text, update)
+			chatId := update.Message.Chat.ID
+			matches := MyShowsUnseenRegexp.FindStringSubmatch(text)
+
+			if  matches == nil {
+				matches = MyShowsNewRegexp.FindStringSubmatch(text)
+			}
+
+			if matches == nil {
+				matches = SearchRegexp.FindStringSubmatch(text)
+			}
+
+			if matches != nil {
+				bot.sendSeries(chatId, matches[1], matches[2], matches[3])
 			}
 		}
 	}
 }
-func  (bot *TgBot) parseSimpleMessage(text string, update tgbotapi.Update) {
-	parts := strings.Split(text, ":")
-	if len(parts) == 3 {
-		name := parts[0]
-		seasonNum, _ := strconv.Atoi(parts[1])
-		seriesNum, _ := strconv.Atoi(parts[2])
-		bot.sendSeries(update.Message.Chat.ID, name, seasonNum, seriesNum)
-	}
-}
 
-func (bot *TgBot) sendSeries(chatId int64, name string, seasonNum int, seriesNum int) {
+func (bot *TgBot) sendSeries(chatId int64, name string, seasonNumS string, seriesNumS string) {
+	seasonNum, e := strconv.Atoi(strings.TrimSpace(seasonNumS))
+	if e != nil {
+		log.Println(e)
+		return
+	}
+
+	seriesNum, e := strconv.Atoi(strings.TrimSpace(seriesNumS))
+	if e != nil {
+		log.Println(e)
+		return
+	}
+
 	seasons, e := bot.Seasonvar.SearchShow(name)
 	if e != nil {
 		log.Println(e)
@@ -80,7 +97,13 @@ func (bot *TgBot) sendSeries(chatId int64, name string, seasonNum int, seriesNum
 				} else {
 					for _, link := range links {
 						found = true
-						message := tgbotapi.NewMessage(chatId, season.SerialName+" "+strconv.Itoa(season.Year)+" "+link.Translation)
+
+						message := tgbotapi.NewMessage(
+							chatId,
+							fmt.Sprintf("%s %d %s",
+								season.SerialName,
+								season.Year,
+								link.Translation))
 						bot.Api.Send(message)
 
 						message = tgbotapi.NewMessage(chatId, link.Url.String())
@@ -95,6 +118,5 @@ func (bot *TgBot) sendSeries(chatId int64, name string, seasonNum int, seriesNum
 			message := tgbotapi.NewMessage(chatId, "Not found")
 			bot.Api.Send(message)
 		}
-
 	}
 }
