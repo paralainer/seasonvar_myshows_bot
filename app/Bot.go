@@ -65,7 +65,7 @@ func (bot *TgBot) startBot() {
 			}
 
 			if matches != nil {
-				bot.sendSeries(chatId, matches[1], matches[2], matches[3])
+				go bot.sendSeries(chatId, matches[1], matches[2], matches[3])
 			}
 		}
 	}
