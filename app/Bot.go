@@ -165,7 +165,7 @@ func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season){
 func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 	hasFullNameMatch := false
 	for _, season := range seasons {
-		if season.SerialName == query {
+		if strings.ToLower(season.SerialName) == strings.ToLower(query) {
 			hasFullNameMatch = true
 			break
 		}
@@ -175,7 +175,7 @@ func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 	for _, season := range seasons {
 		if season.Season == seasonNum {
 			if hasFullNameMatch {
-				if query == season.SerialName {
+				if strings.ToLower(season.SerialName) == strings.ToLower(query)  {
 					matchedSeasons = append(seasons, season)
 				}
 			} else {
