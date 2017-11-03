@@ -42,12 +42,14 @@ func EpisodeById(id int) *EpisodeInfo {
 		return nil
 	}
 
-	episode := &EpisodeInfo{}
+
 	episodeJson := dat["result"].(map[string]interface{})
-	episode.Id = id
-	episode.EpisodeNumber = int(episodeJson["episodeNumber"].(float64))
-	episode.SeasonNumber = int(episodeJson["seasonNumber"].(float64))
-	episode.ShowId = int(episodeJson["showId"].(float64))
+	episode := &EpisodeInfo{
+		Id: id,
+		EpisodeNumber: int(episodeJson["episodeNumber"].(float64)),
+		SeasonNumber: int(episodeJson["seasonNumber"].(float64)),
+		ShowId: int(episodeJson["showId"].(float64)),
+	}
 
 	fmt.Println(episode.ShowId)
 	showName := fetchShowNameById(episode.ShowId)
