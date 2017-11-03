@@ -14,6 +14,7 @@ var MyShowsUnseenRegexp = regexp.MustCompile(`(.*) /show_\d+\n.*\ns(\d+)e(\d+).*
 var MyShowsNewRegexp = regexp.MustCompile(`Новый эпизод сериала (.*)\n.*s(\d+)e(\d+).*`)
 var MyShowsLinkRegexp = regexp.MustCompile(`https?://myshows\.me/view/episode/(\d+)/?`)
 var SearchRegexp = regexp.MustCompile(`(.*):\s*(\d+)\s*:\s*(\d+)\s*`)
+var SearchSpacesRegexp = regexp.MustCompile(`(.*)\s+(\d+)\s+(\d+).*`)
 
 type TgBot struct {
 	Api       *tgbotapi.BotAPI
@@ -104,6 +105,10 @@ func (bot *TgBot) handleMessage(chatId int64, messageId int, text string){
 
 	if matches == nil {
 		matches = SearchRegexp.FindStringSubmatch(text)
+	}
+
+	if matches == nil {
+		matches = SearchSpacesRegexp.FindStringSubmatch(text)
 	}
 
 	if matches != nil {
