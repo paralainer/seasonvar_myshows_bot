@@ -106,43 +106,85 @@ func (bot *TgBot) handleMessage(chatId int64, text string){
 
 }
 
-func (bot *TgBot) sendSeries(chatId int64, name string, seasonNum int, episode int) {
+func (bot *TgBot) sendSeries(chatId int64, query string, seasonNum int, episode int) {
 	//message := tgbotapi.NewMessage(chatId, fmt.Sprintf("%s %d %d", name, seasonNum, episode))
 	//bot.Api.Send(message)
+	name := strings.TrimSpace(query)
 	seasons, e := bot.Seasonvar.SearchShow(name)
 	if e != nil {
 		log.Println(e)
 	} else {
 		found := false
-		for _, season := range seasons {
-			if season.Season == seasonNum {
-				links, err := bot.Seasonvar.GetDownloadLink(season.Id, episode)
-				if err != nil {
-					log.Println(err)
-				} else {
-					for _, link := range links {
-						found = true
 
-						message := tgbotapi.NewMessage(
-							chatId,
-							fmt.Sprintf("%s %d %s",
-								season.SerialName,
-								season.Year,
-								link.Translation))
-						bot.Api.Send(message)
-
-						message = tgbotapi.NewMessage(chatId, link.Url.String())
-						bot.Api.Send(message)
-					}
-				}
-				break
-			}
+		matchedSeasons := getMatchedSeasons(name, seasons, seasonNum)
+		if len(matchedSeasons) == 1 {
+			found = bot.sendSeasonEpisode(chatId, matchedSeasons[0], episode)
+		} else if len(matchedSeasons) > 1 {
+			found = true
+			bot.sendSeasonSelectionButtons(chatId, matchedSeasons)
 		}
 
 		if !found {
 			bot.sendNotFound(chatId)
 		}
 	}
+}
+
+func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int) bool{
+	found := false
+	links, err := bot.Seasonvar.GetDownloadLink(season.Id, episode)
+	if err != nil {
+		log.Println(err)
+	} else {
+		for _, link := range links {
+			found = true
+
+			message := tgbotapi.NewMessage(
+				chatId,
+				fmt.Sprintf("%s %d %s",
+					season.SerialName,
+					season.Year,
+					link.Translation))
+			bot.Api.Send(message)
+
+			message = tgbotapi.NewMessage(chatId, link.Url.String())
+			bot.Api.Send(message)
+		}
+	}
+
+	return found
+}
+
+func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season){
+	for _, season := range seasons {
+		message := tgbotapi.NewMessage(chatId, fmt.Sprintf("%s %d", season.SerialName, season.Year))
+		bot.Api.Send(message)
+	}
+}
+
+func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
+	hasFullNameMatch := false
+	for _, season := range seasons {
+		if season.SerialName == query {
+			hasFullNameMatch = true
+			break
+		}
+	}
+
+	matchedSeasons := []Season{}
+	for _, season := range seasons {
+		if season.Season == seasonNum {
+			if hasFullNameMatch {
+				if query == season.SerialName {
+					matchedSeasons = append(seasons, season)
+				}
+			} else {
+				matchedSeasons = append(seasons, season)
+			}
+		}
+	}
+
+	return matchedSeasons
 }
 
 func (bot *TgBot) sendNotFound(chatId int64) {
