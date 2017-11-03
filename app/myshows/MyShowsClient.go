@@ -15,7 +15,7 @@ type EpisodeInfo struct {
 	EpisodeNumber int
 }
 
-const myShowsApiEndpoint = "https://api.myshows.me/v2/rpc/"
+const apiEndpoint = "https://api.myshows.me/v2/rpc/"
 
 func EpisodeById(id int) *EpisodeInfo {
 	request := fmt.Sprintf(`
@@ -29,7 +29,7 @@ func EpisodeById(id int) *EpisodeInfo {
 		}
 	`, id)
 
-	resp, err := http.Post(myShowsApiEndpoint, "application/json", strings.NewReader(request))
+	resp, err := http.Post(apiEndpoint, "application/json", strings.NewReader(request))
 
 	if err != nil {
 		fmt.Println(err)
@@ -76,7 +76,7 @@ func fetchShowNameById(showId int) string {
 		}
 	`, showId)
 
-	resp, err := http.Post(myShowsApiEndpoint, "application/json", strings.NewReader(request))
+	resp, err := http.Post(apiEndpoint, "application/json", strings.NewReader(request))
 
 	if err != nil {
 		fmt.Println(err)
