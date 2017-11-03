@@ -176,10 +176,10 @@ func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 		if season.Season == seasonNum {
 			if hasFullNameMatch {
 				if strings.ToLower(season.SerialName) == strings.ToLower(query)  {
-					matchedSeasons = append(seasons, season)
+					matchedSeasons = append(matchedSeasons, season)
 				}
 			} else {
-				matchedSeasons = append(seasons, season)
+				matchedSeasons = append(matchedSeasons, season)
 			}
 		}
 	}
