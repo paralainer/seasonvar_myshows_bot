@@ -50,35 +50,52 @@ func (bot *TgBot) startBot() {
 		log.Panic(err)
 	}
 
-
-
-
 	for update := range updates {
 		if update.Message != nil {
 			text := update.Message.Text
 			log.Println("Query:" + text)
 			chatId := update.Message.Chat.ID
-			go bot.handleMessage(chatId, text)
+			go bot.handleMessage(chatId, update.Message.MessageID, text)
+		} else if update.CallbackQuery != nil {
+			go bot.handleCallbackQuery(update.CallbackQuery)
 		}
 	}
 }
 
-func (bot *TgBot) handleMessage(chatId int64, text string){
-	sendMatches := func(chatId int64, matches []string) {
-		season, e := strconv.Atoi(strings.TrimSpace(matches[2]))
-		if e != nil {
-			log.Println(e)
-			return
-		}
-
-		episode, e := strconv.Atoi(strings.TrimSpace(matches[3]))
-		if e != nil {
-			log.Println(e)
-			return
-		}
-		bot.sendSeries(chatId, matches[1], season, episode)
+func (bot *TgBot) handleCallbackQuery(query *tgbotapi.CallbackQuery){
+	queryParts := strings.Split(query.Data, ":")
+	season, e := strconv.Atoi(queryParts[1])
+	if e != nil {
+		log.Println(e)
+		return
 	}
 
+	episode, e := strconv.Atoi(strings.TrimSpace(queryParts[2]))
+	if e != nil {
+		log.Println(e)
+		return
+	}
+	go bot.sendSeasonEpisode(query.Message.Chat.ID, Season{
+		Id: season,
+	}, episode, false)
+}
+
+func (bot *TgBot) sendMatches(chatId int64, messageId int, matches []string){
+	season, e := strconv.Atoi(strings.TrimSpace(matches[2]))
+	if e != nil {
+		log.Println(e)
+		return
+	}
+
+	episode, e := strconv.Atoi(strings.TrimSpace(matches[3]))
+	if e != nil {
+		log.Println(e)
+		return
+	}
+	bot.sendEpisode(chatId, messageId, matches[1], season, episode)
+}
+
+func (bot *TgBot) handleMessage(chatId int64, messageId int, text string){
 	matches := MyShowsUnseenRegexp.FindStringSubmatch(text)
 
 	if  matches == nil {
@@ -90,14 +107,14 @@ func (bot *TgBot) handleMessage(chatId int64, text string){
 	}
 
 	if matches != nil {
-		sendMatches(chatId, matches)
+		bot.sendMatches(chatId, messageId, matches)
 	} else {
 		linkSubmatch := MyShowsLinkRegexp.FindStringSubmatch(text)
 		if linkSubmatch != nil {
 			episodeId, _ := strconv.Atoi(linkSubmatch[1])
 			episodeInfo := myshows.EpisodeById(episodeId)
 			if episodeInfo != nil {
-				bot.sendSeries(chatId, episodeInfo.ShowName, episodeInfo.SeasonNumber, episodeInfo.EpisodeNumber)
+				bot.sendEpisode(chatId, messageId, episodeInfo.ShowName, episodeInfo.SeasonNumber, episodeInfo.EpisodeNumber)
 			} else {
 				bot.sendNotFound(chatId)
 			}
@@ -106,7 +123,7 @@ func (bot *TgBot) handleMessage(chatId int64, text string){
 
 }
 
-func (bot *TgBot) sendSeries(chatId int64, query string, seasonNum int, episode int) {
+func (bot *TgBot) sendEpisode(chatId int64, messageId int, query string, seasonNum int, episode int) {
 	//message := tgbotapi.NewMessage(chatId, fmt.Sprintf("%s %d %d", name, seasonNum, episode))
 	//bot.Api.Send(message)
 	name := strings.TrimSpace(query)
@@ -118,10 +135,10 @@ func (bot *TgBot) sendSeries(chatId int64, query string, seasonNum int, episode 
 
 		matchedSeasons := getMatchedSeasons(name, seasons, seasonNum)
 		if len(matchedSeasons) == 1 {
-			found = bot.sendSeasonEpisode(chatId, matchedSeasons[0], episode)
+			found = bot.sendSeasonEpisode(chatId, matchedSeasons[0], episode, true)
 		} else if len(matchedSeasons) > 1 {
 			found = true
-			bot.sendSeasonSelectionButtons(chatId, matchedSeasons)
+			bot.sendSeasonSelectionButtons(chatId, messageId, matchedSeasons, episode)
 		}
 
 		if !found {
@@ -130,7 +147,7 @@ func (bot *TgBot) sendSeries(chatId int64, query string, seasonNum int, episode 
 	}
 }
 
-func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int) bool{
+func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int, sendText bool) bool{
 	found := false
 	links, err := bot.Seasonvar.GetDownloadLink(season.Id, episode)
 	if err != nil {
@@ -138,28 +155,39 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int) bo
 	} else {
 		for _, link := range links {
 			found = true
-
-			message := tgbotapi.NewMessage(
-				chatId,
-				fmt.Sprintf("%s %d %s",
-					season.SerialName,
-					season.Year,
+			if sendText {
+				message := tgbotapi.NewMessage(
+					chatId,
+					fmt.Sprintf("%s %d %s",
+						season.SerialName,
+						season.Year,
+						link.Translation))
+				bot.Api.Send(message)
+			} else {
+				bot.Api.Send(tgbotapi.NewMessage(
+					chatId,
 					link.Translation))
-			bot.Api.Send(message)
+			}
 
-			message = tgbotapi.NewMessage(chatId, link.Url.String())
-			bot.Api.Send(message)
+			linksMessage := tgbotapi.NewMessage(chatId, link.Url.String())
+			bot.Api.Send(linksMessage)
 		}
 	}
 
 	return found
 }
 
-func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season){
+func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, messageId int, seasons []Season, episode int){
+	buttons := [][]tgbotapi.InlineKeyboardButton{}
 	for _, season := range seasons {
-		message := tgbotapi.NewMessage(chatId, fmt.Sprintf("%s %d", season.SerialName, season.Year))
-		bot.Api.Send(message)
+		button := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %d", season.SerialName, season.Year), fmt.Sprintf("SendById:%d:%d", season.Id, episode)))
+		buttons = append(buttons, button)
 	}
+	markup := tgbotapi.NewInlineKeyboardMarkup(buttons...)
+
+	message := tgbotapi.NewMessage(chatId, "Select tv show")
+	message.ReplyMarkup = markup
+	bot.Api.Send(message)
 }
 
 func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
