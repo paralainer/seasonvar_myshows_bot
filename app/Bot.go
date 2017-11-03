@@ -12,7 +12,7 @@ import (
 
 var MyShowsUnseenRegexp = regexp.MustCompile(`(.*) /show_\d+\n.*\ns(\d+)e(\d+).*`)
 var MyShowsNewRegexp = regexp.MustCompile(`Новый эпизод сериала (.*)\n.*s(\d+)e(\d+).*`)
-var MyShowsLinkRegexp = regexp.MustCompile(`https?://myshows.me/view/episode/(\d+)/?`)
+var MyShowsLinkRegexp = regexp.MustCompile(`https?://myshows\.me/view/episode/(\d+)/?`)
 var SearchRegexp = regexp.MustCompile(`(.*):\s*(\d+)\s*:\s*(\d+)\s*`)
 
 type TgBot struct {
@@ -107,6 +107,8 @@ func (bot *TgBot) handleMessage(chatId int64, text string){
 }
 
 func (bot *TgBot) sendSeries(chatId int64, name string, seasonNum int, episode int) {
+	//message := tgbotapi.NewMessage(chatId, fmt.Sprintf("%s %d %d", name, seasonNum, episode))
+	//bot.Api.Send(message)
 	seasons, e := bot.Seasonvar.SearchShow(name)
 	if e != nil {
 		log.Println(e)

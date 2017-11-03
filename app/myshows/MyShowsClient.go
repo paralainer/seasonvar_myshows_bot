@@ -45,25 +45,27 @@ func EpisodeById(id int) *EpisodeInfo {
 	episode := &EpisodeInfo{}
 	episodeJson := dat["result"].(map[string]interface{})
 	episode.Id = id
-	episode.EpisodeNumber = episodeJson["episodeNumber"].(int)
-	episode.SeasonNumber = episodeJson["seasonNumber"].(int)
-	episode.ShowId = episodeJson["showId"].(int)
+	episode.EpisodeNumber = int(episodeJson["episodeNumber"].(float64))
+	episode.SeasonNumber = int(episodeJson["seasonNumber"].(float64))
+	episode.ShowId = int(episodeJson["showId"].(float64))
 
+	fmt.Println(episode.ShowId)
 	showName := fetchShowNameById(episode.ShowId)
-	if showName == nil {
+	if showName == "" {
 		return nil
 	}
 
-	episode.ShowName = *showName
+	episode.ShowName = showName
+	fmt.Println(showName)
 
 	return episode
 }
 
-func fetchShowNameById(showId int) *string {
+func fetchShowNameById(showId int) string {
 	request := fmt.Sprintf(`
 		{
 		  "jsonrpc": "2.0",
-		  "method": "shows.Episode",
+		  "method": "shows.GetById",
 		  "params": {
 			"showId": %d,
 			"fetchEpisodes": false
@@ -76,16 +78,16 @@ func fetchShowNameById(showId int) *string {
 
 	if err != nil {
 		fmt.Println(err)
-		return nil
+		return ""
 	}
 	var dat map[string]interface{}
 	json.NewDecoder(resp.Body).Decode(&dat)
 
 	if dat["result"] == nil {
-		return nil
+		return ""
 	}
 
 	showJson := dat["result"].(map[string]interface{})
 
-	return &showJson["title"].(string)
+	return showJson["title"].(string)
 }
