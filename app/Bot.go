@@ -161,20 +161,25 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int, se
 		translations := []string{}
 		for _, link := range links {
 			found = true
-			var translation string
+			text := ""
 			if sendText {
-				translation =
-					fmt.Sprintf("%s %d %s",
+				text =
+					fmt.Sprintf("%s %d",
 						season.SerialName,
-						season.Year,
-						link.Translation)
-			} else {
-					translation = link.Translation
+						season.Year)
 			}
-			translations = append(translations, translation + "\n" + link.Url.String())
+			translations = append(translations, fmt.Sprintf("%s [%s](%s)", text, link.Translation, link.Url.String()))
 		}
 
-		bot.Api.Send(tgbotapi.NewMessage(chatId, strings.Join(translations, "\n\n")))
+		bot.Api.Send(tgbotapi.MessageConfig{
+			BaseChat: tgbotapi.BaseChat{
+				ChatID:           chatId,
+				ReplyToMessageID: 0,
+			},
+			Text: strings.Join(translations, "\n\n"),
+			DisableWebPagePreview: false,
+			ParseMode: tgbotapi.ModeMarkdown,
+		})
 	}
 
 	return found
