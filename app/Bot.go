@@ -174,7 +174,7 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int, se
 			translations = append(translations, translation + "\n" + link.Url.String())
 		}
 
-		bot.Api.Send(tgbotapi.NewMessage(chatId, strings.Join(translations, "\n")))
+		bot.Api.Send(tgbotapi.NewMessage(chatId, strings.Join(translations, "\n\n")))
 	}
 
 	return found
