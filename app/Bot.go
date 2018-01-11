@@ -164,11 +164,11 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int, se
 			text := ""
 			if sendText {
 				text =
-					fmt.Sprintf("%s %d",
+					fmt.Sprintf("%s %d ",
 						season.SerialName,
 						season.Year)
 			}
-			translations = append(translations, fmt.Sprintf("%s [%s](%s)", text, link.Translation, link.Url.String()))
+			translations = append(translations, fmt.Sprintf("%s[%s](%s)", text, link.Translation, link.Url.String()))
 		}
 
 		bot.Api.Send(tgbotapi.MessageConfig{
