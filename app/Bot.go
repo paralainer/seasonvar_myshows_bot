@@ -44,7 +44,14 @@ func StartBot(token string, seasonvar *SeasonvarClient) {
 func (bot *TgBot) startBot() {
 	log.Printf("Authorized on account %s", bot.Api.Self.UserName)
 
-	updates := bot.Api.ListenForWebhook("/telegram-callback/" + bot.Api.Token)
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+
+	updates, err := bot.Api.GetUpdatesChan(u)
+
+	if err != nil {
+		log.Panic(err)
+	}
 
 	for update := range updates {
 		if update.Message != nil {
