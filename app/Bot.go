@@ -13,6 +13,7 @@ import (
 var MyShowsUnseenRegexp = regexp.MustCompile(`(.*) /show_\d+\n.*\ns(\d+)e(\d+).*`)
 var MyShowsNewRegexp = regexp.MustCompile(`Новый эпизод сериала (.*)\n.*s(\d+)e(\d+).*`)
 var MyShowsLinkRegexp = regexp.MustCompile(`https?://myshows\.me/view/episode/(\d+)/?`)
+var IdRegexp = regexp.MustCompile(`id(\d+)\s+(\d+)\s*`)
 var SearchRegexp = regexp.MustCompile(`(.*):\s*(\d+)\s*:\s*(\d+)\s*`)
 var SearchSpacesRegexp = regexp.MustCompile(`(.*)\s+(\d+)\s+(\d+)\s*`)
 
@@ -95,6 +96,17 @@ func (bot *TgBot) handleMessage(chatId int64, messageId int, text string){
 
 	if  matches == nil {
 		matches = MyShowsNewRegexp.FindStringSubmatch(text)
+	}
+
+	if matches == nil {
+		matches = IdRegexp.FindStringSubmatch(text)
+		if matches != nil {
+			season := Season{}
+			season.Id, _ = strconv.Atoi(matches[0])
+			episode, _ := strconv.Atoi(matches[1])
+			bot.sendSeasonEpisode(chatId, season, episode, false)
+			return
+		}
 	}
 
 	if matches == nil {
