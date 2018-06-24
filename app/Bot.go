@@ -104,6 +104,8 @@ func (bot *TgBot) handleMessage(chatId int64, messageId int, text string){
 			season := Season{}
 			season.Id, _ = strconv.Atoi(matches[0])
 			episode, _ := strconv.Atoi(matches[1])
+			log.Println(season.Id)
+			log.Println(episode)
 			bot.sendSeasonEpisode(chatId, season, episode, false)
 			return
 		}
