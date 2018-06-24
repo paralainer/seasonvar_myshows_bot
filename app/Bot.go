@@ -102,8 +102,8 @@ func (bot *TgBot) handleMessage(chatId int64, messageId int, text string){
 		matches = IdRegexp.FindStringSubmatch(text)
 		if matches != nil {
 			season := Season{}
-			season.Id, _ = strconv.Atoi(matches[0])
-			episode, _ := strconv.Atoi(matches[1])
+			season.Id, _ = strconv.Atoi(matches[1])
+			episode, _ := strconv.Atoi(matches[2])
 			log.Println(season.Id)
 			log.Println(episode)
 			bot.sendSeasonEpisode(chatId, season, episode, false)
