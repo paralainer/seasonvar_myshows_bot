@@ -136,9 +136,13 @@ func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
 
 		year := season["year"].(string)
 		id, _ := strconv.Atoi(season["id"].(string))
+		originalName := ""
+		if season["name_original"] != nil {
+			originalName = season["name_original"].(string)
+		}
 		seasons = append(seasons, Season{
 			ShowName:             season["name"].(string),
-			ShowOriginalName:     season["name_original"].(string),
+			ShowOriginalName:     originalName,
 			ShowAlternativeNames: extractAlternativeNames(season["name_alternative"]),
 			SeasonId:             id,
 			Year:                 year,
