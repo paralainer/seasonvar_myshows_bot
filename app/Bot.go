@@ -10,10 +10,12 @@ import (
 	"seasonvar_myshows_bot/app/myshows"
 )
 
+var IdRegexp = regexp.MustCompile(`id(\d+)\s+(\d+)\s*`)
+var SeasonvarRegexp = regexp.MustCompile(`https?://seasonvar.ru/serial-(\d+).*\.html\s+(\d+)`)
+var MobileSeasonvarRegexp = regexp.MustCompile(`https?://m.seasonvar.ru/#season/(\d+).*\.html\s+(\d+)`)
 var MyShowsUnseenRegexp = regexp.MustCompile(`(.*) /show_\d+\n.*\ns(\d+)e(\d+).*`)
 var MyShowsNewRegexp = regexp.MustCompile(`Новый эпизод сериала (.*)\n.*s(\d+)e(\d+).*`)
 var MyShowsLinkRegexp = regexp.MustCompile(`https?://myshows\.me/view/episode/(\d+)/?`)
-var IdRegexp = regexp.MustCompile(`id(\d+)\s+(\d+)\s*`)
 var SearchRegexp = regexp.MustCompile(`(.*):\s*(\d+)\s*:\s*(\d+)\s*`)
 var SearchSpacesRegexp = regexp.MustCompile(`(.*)\s+(\d+)\s+(\d+)\s*`)
 
@@ -39,8 +41,6 @@ func StartBot(token string, seasonvar *SeasonvarClient) {
 	bot.startBot()
 }
 
-
-
 func (bot *TgBot) startBot() {
 	log.Printf("Authorized on account %s", bot.Api.Self.UserName)
 
@@ -65,7 +65,7 @@ func (bot *TgBot) startBot() {
 	}
 }
 
-func (bot *TgBot) handleCallbackQuery(query *tgbotapi.CallbackQuery){
+func (bot *TgBot) handleCallbackQuery(query *tgbotapi.CallbackQuery) {
 	queryParts := strings.Split(query.Data, ":")
 	season, e := strconv.Atoi(queryParts[1])
 	if e != nil {
@@ -78,12 +78,10 @@ func (bot *TgBot) handleCallbackQuery(query *tgbotapi.CallbackQuery){
 		log.Println(e)
 		return
 	}
-	go bot.sendSeasonEpisode(query.Message.Chat.ID, Season{
-		Id: season,
-	}, episode, false)
+	go bot.sendSeasonEpisode(query.Message.Chat.ID, season, episode, false)
 }
 
-func (bot *TgBot) sendMatches(chatId int64, messageId int, matches []string){
+func (bot *TgBot) sendMatches(chatId int64, matches []string) {
 	season, e := strconv.Atoi(strings.TrimSpace(matches[2]))
 	if e != nil {
 		log.Println(e)
@@ -95,27 +93,37 @@ func (bot *TgBot) sendMatches(chatId int64, messageId int, matches []string){
 		log.Println(e)
 		return
 	}
-	bot.sendEpisode(chatId, messageId, matches[1], season, episode)
+
+	bot.sendEpisode(chatId, matches[1], season, episode)
 }
 
-func (bot *TgBot) handleMessage(chatId int64, messageId int, text string){
-	matches := MyShowsUnseenRegexp.FindStringSubmatch(text)
+func (bot *TgBot) handleMessage(chatId int64, messageId int, text string) {
 
-	if  matches == nil {
-		matches = MyShowsNewRegexp.FindStringSubmatch(text)
+	if bot.handleSeasonById(text, chatId) {
+		return
 	}
 
-	if matches == nil {
-		matches = IdRegexp.FindStringSubmatch(text)
-		if matches != nil {
-			season := Season{}
-			season.Id, _ = strconv.Atoi(matches[1])
-			episode, _ := strconv.Atoi(matches[2])
-			log.Println(season.Id)
-			log.Println(episode)
-			bot.sendSeasonEpisode(chatId, season, episode, false)
-			return
+	if bot.handleSearchForSeason(text, chatId) {
+		return
+	}
+
+	linkSubmatch := MyShowsLinkRegexp.FindStringSubmatch(text)
+	if linkSubmatch != nil {
+		episodeId, _ := strconv.Atoi(linkSubmatch[1])
+		episodeInfo := myshows.EpisodeById(episodeId)
+		if episodeInfo != nil {
+			bot.sendEpisode(chatId, episodeInfo.ShowName, episodeInfo.SeasonNumber, episodeInfo.EpisodeNumber)
+		} else {
+			bot.sendNotFound(chatId)
 		}
+	}
+}
+
+func (bot *TgBot) handleSearchForSeason(text string, chatId int64) bool {
+	matches := MyShowsUnseenRegexp.FindStringSubmatch(text)
+
+	if matches == nil {
+		matches = MyShowsNewRegexp.FindStringSubmatch(text)
 	}
 
 	if matches == nil {
@@ -126,26 +134,38 @@ func (bot *TgBot) handleMessage(chatId int64, messageId int, text string){
 		matches = SearchSpacesRegexp.FindStringSubmatch(text)
 	}
 
-	if matches != nil {
-		bot.sendMatches(chatId, messageId, matches)
-	} else {
-		linkSubmatch := MyShowsLinkRegexp.FindStringSubmatch(text)
-		if linkSubmatch != nil {
-			episodeId, _ := strconv.Atoi(linkSubmatch[1])
-			episodeInfo := myshows.EpisodeById(episodeId)
-			if episodeInfo != nil {
-				bot.sendEpisode(chatId, messageId, episodeInfo.ShowName, episodeInfo.SeasonNumber, episodeInfo.EpisodeNumber)
-			} else {
-				bot.sendNotFound(chatId)
-			}
-		}
+	if matches == nil {
+		return false
 	}
 
+	bot.sendMatches(chatId, matches)
+
+	return true
 }
 
-func (bot *TgBot) sendEpisode(chatId int64, messageId int, query string, seasonNum int, episode int) {
-	//message := tgbotapi.NewMessage(chatId, fmt.Sprintf("%s %d %d", name, seasonNum, episode))
-	//bot.Api.Send(message)
+func (bot *TgBot) handleSeasonById(text string, chatId int64) bool {
+	matches := IdRegexp.FindStringSubmatch(text)
+
+	if matches == nil {
+		matches = SeasonvarRegexp.FindStringSubmatch(text)
+	}
+
+	if matches == nil {
+		matches = MobileSeasonvarRegexp.FindStringSubmatch(text)
+	}
+
+	if matches == nil {
+		return false
+	}
+
+	seasonId, _ := strconv.Atoi(matches[1])
+	episode, _ := strconv.Atoi(matches[2])
+	bot.sendSeasonEpisode(chatId, seasonId, episode, false)
+
+	return true
+}
+
+func (bot *TgBot) sendEpisode(chatId int64, query string, seasonNum int, episode int) {
 	name := strings.TrimSpace(query)
 	seasons, e := bot.Seasonvar.SearchShow(name)
 	if e != nil {
@@ -155,10 +175,10 @@ func (bot *TgBot) sendEpisode(chatId int64, messageId int, query string, seasonN
 
 		matchedSeasons := getMatchedSeasons(name, seasons, seasonNum)
 		if len(matchedSeasons) == 1 {
-			found = bot.sendSeasonEpisode(chatId, matchedSeasons[0], episode, true)
+			found = bot.sendSeasonEpisode(chatId, matchedSeasons[0].SeasonId, episode, true)
 		} else if len(matchedSeasons) > 1 {
 			found = true
-			bot.sendSeasonSelectionButtons(chatId, messageId, matchedSeasons, episode)
+			bot.sendSeasonSelectionButtons(chatId, matchedSeasons, episode)
 		}
 
 		if !found {
@@ -167,21 +187,21 @@ func (bot *TgBot) sendEpisode(chatId int64, messageId int, query string, seasonN
 	}
 }
 
-func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int, sendText bool) bool{
+func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int, sendText bool) bool {
 	found := false
-	links, err := bot.Seasonvar.GetDownloadLink(season.Id, episode)
+	links, err := bot.Seasonvar.GetDownloadLink(seasonId, episode)
 	if err != nil {
 		log.Println(err)
 	} else {
-		translations := []string{}
+		var translations []string
 		for _, link := range links {
 			found = true
 			text := ""
 			if sendText {
 				text =
-					fmt.Sprintf("%s %d ",
-						season.SerialName,
-						season.Year)
+					fmt.Sprintf("%s %s ",
+						link.Season.ShowName,
+						link.Season.Year)
 			}
 			translations = append(translations, fmt.Sprintf("%s[%s](%s)", text, link.Translation, link.Url.String()))
 		}
@@ -191,19 +211,19 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, season Season, episode int, se
 				ChatID:           chatId,
 				ReplyToMessageID: 0,
 			},
-			Text: strings.Join(translations, "\n\n"),
+			Text:                  strings.Join(translations, "\n\n"),
 			DisableWebPagePreview: false,
-			ParseMode: tgbotapi.ModeMarkdown,
+			ParseMode:             tgbotapi.ModeMarkdown,
 		})
 	}
 
 	return found
 }
 
-func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, messageId int, seasons []Season, episode int){
-	buttons := [][]tgbotapi.InlineKeyboardButton{}
+func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season, episode int) {
+	var buttons [][]tgbotapi.InlineKeyboardButton
 	for _, season := range seasons {
-		button := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %d", season.SerialName, season.Year), fmt.Sprintf("SendById:%d:%d", season.Id, episode)))
+		button := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s", season.ShowName, season.Year), fmt.Sprintf("SendById:%d:%d", season.SeasonId, episode)))
 		buttons = append(buttons, button)
 	}
 	markup := tgbotapi.NewInlineKeyboardMarkup(buttons...)
@@ -216,17 +236,17 @@ func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, messageId int, season
 func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 	hasFullNameMatch := false
 	for _, season := range seasons {
-		if strings.ToLower(season.SerialName) == strings.ToLower(query) {
+		if strings.ToLower(season.ShowName) == strings.ToLower(query) {
 			hasFullNameMatch = true
 			break
 		}
 	}
 
-	matchedSeasons := []Season{}
+	var matchedSeasons []Season
 	for _, season := range seasons {
-		if season.Season == seasonNum {
+		if season.SeasonId == seasonNum {
 			if hasFullNameMatch {
-				if strings.ToLower(season.SerialName) == strings.ToLower(query)  {
+				if strings.ToLower(season.ShowName) == strings.ToLower(query) {
 					matchedSeasons = append(matchedSeasons, season)
 				}
 			} else {

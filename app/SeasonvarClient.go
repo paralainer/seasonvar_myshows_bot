@@ -12,15 +12,16 @@ import (
 
 const apiUrl = "http://api.seasonvar.ru"
 
-type Season struct{
-	SerialName string
-	Season int
-	Year int
-	Id int
+type Season struct {
+	ShowName     string
+	SeasonNumber int
+	Year         string
+	SeasonId     int
 }
 
 type DownloadLink struct {
-	Url *url.URL
+	Url         *url.URL
+	Season      *Season
 	Translation string
 }
 
@@ -50,9 +51,25 @@ func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) ([]Do
 		log.Println("Error parsing json")
 		return nil, err
 	}
-	result := []DownloadLink{}
-	season := dat["playlist"].([]interface{})
-	for _, s := range season {
+	var result []DownloadLink
+	showName := dat["name_original"].(string)
+	if showName == "" {
+		showName = dat["name"].(string)
+	}
+	seasonSeries := dat["playlist"].([]interface{})
+	year := dat["year"].(string)
+	seasonNumber, err := strconv.Atoi(dat["season_number"].(string))
+	if err != nil {
+		seasonNumber = 0
+	}
+	season := Season {
+		ShowName: showName,
+		Year: year,
+		SeasonId: seasonId,
+		SeasonNumber: seasonNumber,
+	}
+
+	for _, s := range seasonSeries {
 		series := s.(map[string]interface{})
 		num, err := strconv.Atoi(strings.Split(series["name"].(string), " ")[0])
 		if err != nil {
@@ -77,6 +94,7 @@ func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) ([]Do
 
 		result = append(result, DownloadLink{
 			Url: link,
+			Season: &season,
 			Translation: translation,
 		})
 
@@ -102,7 +120,7 @@ func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
 		return nil, err
 	}
 
-	seasons := []Season{}
+	var seasons []Season
 	for _, s := range dat {
 		season := s.(map[string]interface{})
 		seasonNumber, err := strconv.Atoi(season["season"].([]interface{})[0].(string))
@@ -110,13 +128,13 @@ func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
 			return nil, err
 		}
 
-		year, _ := strconv.Atoi(season["year"].(string))
+		year := season["year"].(string)
 		id, _ := strconv.Atoi(season["id"].(string))
 		seasons = append(seasons, Season{
-			SerialName: season["name"].(string),
-			Season: seasonNumber,
-			Year: year,
-			Id: id,
+			ShowName:     season["name"].(string),
+			SeasonId:     id,
+			Year:         year,
+			SeasonNumber: seasonNumber,
 		})
 	}
 
