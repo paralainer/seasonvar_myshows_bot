@@ -188,7 +188,7 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int, sen
 			if sendText {
 				text =
 					fmt.Sprintf("%s %s ",
-						link.Season.ShowName,
+						link.Season.PrintableName(),
 						link.Season.Year)
 			}
 			translations = append(translations, fmt.Sprintf("%s[%s](%s)", text, link.Translation, link.Url.String()))
@@ -211,7 +211,7 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int, sen
 func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season, episode int) {
 	var buttons [][]tgbotapi.InlineKeyboardButton
 	for _, season := range seasons {
-		button := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s", season.ShowName, season.Year), fmt.Sprintf("SendById:%d:%d", season.SeasonId, episode)))
+		button := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("%s %s", season.PrintableName(), season.Year), fmt.Sprintf("SendById:%d:%d", season.SeasonId, episode)))
 		buttons = append(buttons, button)
 	}
 	markup := tgbotapi.NewInlineKeyboardMarkup(buttons...)
@@ -223,8 +223,14 @@ func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season, epi
 
 func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 	hasFullNameMatch := false
+	normalizedQuery := strings.ToLower(query)
+	isNameMatches := func (season *Season) bool {
+		return strings.ToLower(season.ShowName) == normalizedQuery ||
+			strings.ToLower(season.ShowOriginalName) == normalizedQuery ||
+			strings.ToLower(season.ShowAlternativeName) == normalizedQuery
+	}
 	for _, season := range seasons {
-		if strings.ToLower(season.ShowName) == strings.ToLower(query) {
+		if  isNameMatches(&season){
 			hasFullNameMatch = true
 			break
 		}
@@ -232,9 +238,9 @@ func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 
 	var matchedSeasons []Season
 	for _, season := range seasons {
-		if season.SeasonId == seasonNum {
+		if season.SeasonNumber == seasonNum {
 			if hasFullNameMatch {
-				if strings.ToLower(season.ShowName) == strings.ToLower(query) {
+				if isNameMatches(&season) {
 					matchedSeasons = append(matchedSeasons, season)
 				}
 			} else {
