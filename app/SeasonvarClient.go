@@ -105,6 +105,7 @@ func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) ([]Do
 }
 
 func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
+	log.Printf("Searching for '%s'", query)
 	params := sc.postParams()
 	params.Add("command", "search")
 	params.Add("query", query)
@@ -119,6 +120,8 @@ func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
 		log.Println("Error parsing json")
 		return nil, err
 	}
+
+	log.Println(dat)
 
 	var seasons []Season
 	for _, s := range dat {
