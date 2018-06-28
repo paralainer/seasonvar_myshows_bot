@@ -78,7 +78,7 @@ func handleMyShowsLink(bot *TgBot, chatId int64, matches []string) {
 func handleSeasonById(bot *TgBot, chatId int64, matches []string) {
 	seasonId, _ := strconv.Atoi(matches[1])
 	episode, _ := strconv.Atoi(matches[2])
-	bot.sendSeasonEpisode(chatId, seasonId, episode, true)
+	bot.sendSeasonEpisode(chatId, seasonId, episode)
 }
 
 type TgBot struct {
@@ -140,7 +140,7 @@ func (bot *TgBot) handleCallbackQuery(query *tgbotapi.CallbackQuery) {
 		log.Println(e)
 		return
 	}
-	go bot.sendSeasonEpisode(query.Message.Chat.ID, season, episode, false)
+	go bot.sendSeasonEpisode(query.Message.Chat.ID, season, episode)
 }
 
 func (bot *TgBot) handleMessage(chatId int64, text string) {
@@ -163,7 +163,7 @@ func (bot *TgBot) sendEpisode(chatId int64, query string, seasonNum int, episode
 
 		matchedSeasons := getMatchedSeasons(name, seasons, seasonNum)
 		if len(matchedSeasons) == 1 {
-			found = bot.sendSeasonEpisode(chatId, matchedSeasons[0].SeasonId, episode, true)
+			found = bot.sendSeasonEpisode(chatId, matchedSeasons[0].SeasonId, episode)
 		} else if len(matchedSeasons) > 1 {
 			found = true
 			bot.sendSeasonSelectionButtons(chatId, matchedSeasons, episode)
@@ -175,7 +175,7 @@ func (bot *TgBot) sendEpisode(chatId int64, query string, seasonNum int, episode
 	}
 }
 
-func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int, sendText bool) bool {
+func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int) bool {
 	found := false
 	links, err := bot.Seasonvar.GetDownloadLink(seasonId, episode)
 	if err != nil {
@@ -184,13 +184,9 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int, sen
 		var translations []string
 		for _, link := range links {
 			found = true
-			text := ""
-			if sendText {
-				text =
-					fmt.Sprintf("%s %s ",
+			text := fmt.Sprintf("%s %s ",
 						link.Season.PrintableName(),
 						link.Season.Year)
-			}
 			translations = append(translations, fmt.Sprintf("%s[%s](%s)", text, link.Translation, link.Url.String()))
 		}
 
