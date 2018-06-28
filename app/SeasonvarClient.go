@@ -139,7 +139,7 @@ func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
 		seasons = append(seasons, Season{
 			ShowName:             season["name"].(string),
 			ShowOriginalName:     season["name_original"].(string),
-			ShowAlternativeNames: extractAlternativeNames(season["name_alternative"].([]interface{})),
+			ShowAlternativeNames: extractAlternativeNames(season["name_alternative"]),
 			SeasonId:             id,
 			Year:                 year,
 			SeasonNumber:         seasonNumber,
