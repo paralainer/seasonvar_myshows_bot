@@ -70,7 +70,7 @@ func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) ([]Do
 	season := Season{
 		ShowName:             dat["name"].(string),
 		ShowOriginalName:     dat["name_original"].(string),
-		ShowAlternativeNames: extractAlternativeNames(dat["name_alternative"].([]interface{})),
+		ShowAlternativeNames: extractAlternativeNames(dat["name_alternative"]),
 		Year:                 year,
 		SeasonId:             seasonId,
 		SeasonNumber:         seasonNumber,
@@ -149,9 +149,12 @@ func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
 	return seasons, nil
 }
 
-func extractAlternativeNames(names []interface{}) []string {
+func extractAlternativeNames(names interface{}) []string {
 	var result []string
-	for _, name := range names {
+	if names == nil {
+		return result
+	}
+	for _, name := range names.([]interface{}) {
 		result = append(result, name.(string))
 	}
 
