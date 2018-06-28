@@ -224,11 +224,22 @@ func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season, epi
 func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 	hasFullNameMatch := false
 	normalizedQuery := strings.ToLower(query)
+
+	matchAlternativeNames := func(names []string) bool {
+		for _, name := range  names {
+			if strings.ToLower(name) == normalizedQuery {
+				return true
+			}
+		}
+		return false
+	}
+
 	isNameMatches := func (season *Season) bool {
 		return strings.ToLower(season.ShowName) == normalizedQuery ||
 			strings.ToLower(season.ShowOriginalName) == normalizedQuery ||
-			strings.ToLower(season.ShowAlternativeName) == normalizedQuery
+			matchAlternativeNames(season.ShowAlternativeNames)
 	}
+
 	for _, season := range seasons {
 		if  isNameMatches(&season){
 			hasFullNameMatch = true

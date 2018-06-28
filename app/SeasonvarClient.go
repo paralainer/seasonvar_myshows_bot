@@ -13,24 +13,20 @@ import (
 const apiUrl = "http://api.seasonvar.ru"
 
 type Season struct {
-	ShowName            string
-	ShowOriginalName    string
-	ShowAlternativeName string
-	SeasonNumber        int
-	Year                string
-	SeasonId            int
+	ShowName             string
+	ShowOriginalName     string
+	ShowAlternativeNames []string
+	SeasonNumber         int
+	Year                 string
+	SeasonId             int
 }
 
-func (season *Season) PrintableName() string{
+func (season *Season) PrintableName() string {
 	if season.ShowOriginalName != "" {
 		return season.ShowOriginalName
 	}
 
-	if season.ShowName != "" {
-		return season.ShowName
-	}
-
-	return season.ShowAlternativeName
+	return season.ShowName
 }
 
 type DownloadLink struct {
@@ -72,12 +68,12 @@ func (sc *SeasonvarClient) GetDownloadLink(seasonId int, seriesNumber int) ([]Do
 		seasonNumber = 0
 	}
 	season := Season{
-		ShowName:            dat["name"].(string),
-		ShowOriginalName:    dat["name_original"].(string),
-		ShowAlternativeName: dat["name_alternative"].(string),
-		Year:         year,
-		SeasonId:     seasonId,
-		SeasonNumber: seasonNumber,
+		ShowName:             dat["name"].(string),
+		ShowOriginalName:     dat["name_original"].(string),
+		ShowAlternativeNames: extractAlternativeNames(dat["name_alternative"].([]interface{})),
+		Year:                 year,
+		SeasonId:             seasonId,
+		SeasonNumber:         seasonNumber,
 	}
 
 	for _, s := range seasonSeries {
@@ -141,14 +137,23 @@ func (sc *SeasonvarClient) SearchShow(query string) ([]Season, error) {
 		year := season["year"].(string)
 		id, _ := strconv.Atoi(season["id"].(string))
 		seasons = append(seasons, Season{
-			ShowName:            season["name"].(string),
-			ShowOriginalName:    season["name_original"].(string),
-			ShowAlternativeName: season["name_alternative"].(string),
-			SeasonId:            id,
-			Year:                year,
-			SeasonNumber:        seasonNumber,
+			ShowName:             season["name"].(string),
+			ShowOriginalName:     season["name_original"].(string),
+			ShowAlternativeNames: extractAlternativeNames(season["name_alternative"].([]interface{})),
+			SeasonId:             id,
+			Year:                 year,
+			SeasonNumber:         seasonNumber,
 		})
 	}
 
 	return seasons, nil
+}
+
+func extractAlternativeNames(names []interface{}) []string {
+	var result []string
+	for _, name := range names {
+		result = append(result, name.(string))
+	}
+
+	return result
 }
