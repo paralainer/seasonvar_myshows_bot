@@ -160,7 +160,7 @@ func (bot *TgBot) handleSeasonById(text string, chatId int64) bool {
 
 	seasonId, _ := strconv.Atoi(matches[1])
 	episode, _ := strconv.Atoi(matches[2])
-	bot.sendSeasonEpisode(chatId, seasonId, episode, false)
+	bot.sendSeasonEpisode(chatId, seasonId, episode, true)
 
 	return true
 }
