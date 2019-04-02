@@ -78,7 +78,7 @@ func handleMyShowsLink(bot *TgBot, chatId int64, matches []string) {
 func handleSeasonById(bot *TgBot, chatId int64, matches []string) {
 	seasonId, _ := strconv.Atoi(matches[1])
 	episode, _ := strconv.Atoi(matches[2])
-	bot.sendSeasonEpisode(chatId, 0, seasonId, episode)
+	go bot.sendSeasonEpisode(chatId, 0, seasonId, episode)
 }
 
 type TgBot struct {
@@ -164,23 +164,21 @@ func (bot *TgBot) sendEpisode(chatId int64, query string, seasonNum int, episode
 	if e != nil {
 		log.Println(e)
 	} else {
-		found := false
 
 		matchedSeasons := getMatchedSeasons(name, seasons, seasonNum)
 		if len(matchedSeasons) == 1 {
-			found = bot.sendSeasonEpisode(chatId, seasonNum, matchedSeasons[0].SeasonId, episode)
+			go bot.sendSeasonEpisode(chatId, seasonNum, matchedSeasons[0].SeasonId, episode)
 		} else if len(matchedSeasons) > 1 {
-			found = true
-			bot.sendSeasonSelectionButtons(chatId, matchedSeasons, episode)
+			go bot.sendSeasonSelectionButtons(chatId, matchedSeasons, episode)
 		}
 
-		if !found {
+		if len(matchedSeasons) == 0 {
 			bot.sendNotFound(chatId)
 		}
 	}
 }
 
-func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonNumber int, seasonId int, episode int) bool {
+func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonNumber int, seasonId int, episode int) {
 	found := false
 	links, err := bot.Seasonvar.GetDownloadLink(seasonId, episode)
 	if err != nil {
@@ -199,7 +197,7 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonNumber int, seasonId int
 			BaseChat: tgbotapi.BaseChat{
 				ChatID:           chatId,
 				ReplyToMessageID: 0,
-				ReplyMarkup:      getNextButton(chatId, seasonId, seasonNumber, episode),
+				ReplyMarkup:      getNextButton(seasonId, seasonNumber, episode),
 			},
 			Text:                  strings.Join(translations, "\n\n"),
 			DisableWebPagePreview: false,
@@ -207,7 +205,9 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonNumber int, seasonId int
 		})
 	}
 
-	return found
+	if !found {
+		bot.sendNotFound(chatId)
+	}
 }
 
 func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season, episode int) {
@@ -223,7 +223,7 @@ func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season, epi
 	_, _ = bot.Api.Send(message)
 }
 
-func getNextButton(chatId int64, seasonId int, seasonNumber int, currentEpisode int) tgbotapi.InlineKeyboardMarkup {
+func getNextButton(seasonId int, seasonNumber int, currentEpisode int) tgbotapi.InlineKeyboardMarkup {
 	var buttons [][]tgbotapi.InlineKeyboardButton
 	button := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("Next Episode"), fmt.Sprintf("SendById:%d:%d:%d", seasonId, seasonNumber, currentEpisode+1)))
 	buttons = append(buttons, button)
