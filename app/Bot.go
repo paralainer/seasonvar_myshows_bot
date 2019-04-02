@@ -1,13 +1,13 @@
 package app
 
 import (
-	"log"
-	"gopkg.in/telegram-bot-api.v4"
-	"strings"
-	"strconv"
-	"regexp"
 	"fmt"
+	"gopkg.in/telegram-bot-api.v4"
+	"log"
+	"regexp"
 	"seasonvar_myshows_bot/app/myshows"
+	"strconv"
+	"strings"
 )
 
 type Handler func(bot *TgBot, chatId int64, matches []string)
@@ -36,17 +36,17 @@ var SearchRegexp = regexp.MustCompile(`(.*):\s*(\d+)\s*:\s*(\d+)\s*`)
 var SearchSpacesRegexp = regexp.MustCompile(`(.*)\s+(\d+)\s+(\d+)\s*`)
 
 var strategies = [...]*Strategy{
-	NewStrategy("ById", 				IdRegexp, 				handleSeasonById),
-	NewStrategy("SeasonvarLink", 		SeasonvarRegexp, 		handleSeasonById),
-	NewStrategy("MobileSeasonvarLink", 	MobileSeasonvarRegexp, 	handleSeasonById),
+	NewStrategy("ById", IdRegexp, handleSeasonById),
+	NewStrategy("SeasonvarLink", SeasonvarRegexp, handleSeasonById),
+	NewStrategy("MobileSeasonvarLink", MobileSeasonvarRegexp, handleSeasonById),
 
-	NewStrategy("MyShowsUnseenLink", 	MyShowsUnseenRegexp, 	handleSearchForEpisode),
-	NewStrategy("MyShowsNewEpisode", 	MyShowsNewRegexp, 		handleSearchForEpisode),
+	NewStrategy("MyShowsUnseenLink", MyShowsUnseenRegexp, handleSearchForEpisode),
+	NewStrategy("MyShowsNewEpisode", MyShowsNewRegexp, handleSearchForEpisode),
 
-	NewStrategy("MyShowsLink", 			MyShowsLinkRegexp, 		handleMyShowsLink),
+	NewStrategy("MyShowsLink", MyShowsLinkRegexp, handleMyShowsLink),
 
-	NewStrategy("SearchColons", 		SearchRegexp, 			handleSearchForEpisode),
-	NewStrategy("SearchSpaces", 		SearchSpacesRegexp, 	handleSearchForEpisode),
+	NewStrategy("SearchColons", SearchRegexp, handleSearchForEpisode),
+	NewStrategy("SearchSpaces", SearchSpacesRegexp, handleSearchForEpisode),
 }
 
 func handleSearchForEpisode(bot *TgBot, chatId int64, matches []string) {
@@ -185,8 +185,8 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int) boo
 		for _, link := range links {
 			found = true
 			text := fmt.Sprintf("%s %s ",
-						link.Season.PrintableName(),
-						link.Season.Year)
+				link.Season.PrintableName(),
+				link.Season.Year)
 			translations = append(translations, fmt.Sprintf("%s[%s](%s)", text, link.Translation, link.Url.String()))
 		}
 
@@ -222,7 +222,7 @@ func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 	normalizedQuery := strings.ToLower(query)
 
 	matchAlternativeNames := func(names []string) bool {
-		for _, name := range  names {
+		for _, name := range names {
 			if strings.ToLower(name) == normalizedQuery {
 				return true
 			}
@@ -230,14 +230,14 @@ func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 		return false
 	}
 
-	isNameMatches := func (season *Season) bool {
+	isNameMatches := func(season *Season) bool {
 		return strings.ToLower(season.ShowName) == normalizedQuery ||
 			strings.ToLower(season.ShowOriginalName) == normalizedQuery ||
 			matchAlternativeNames(season.ShowAlternativeNames)
 	}
 
 	for _, season := range seasons {
-		if  isNameMatches(&season){
+		if isNameMatches(&season) {
 			hasFullNameMatch = true
 			break
 		}
@@ -261,5 +261,5 @@ func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 
 func (bot *TgBot) sendNotFound(chatId int64) {
 	message := tgbotapi.NewMessage(chatId, "Not found")
-	bot.Api.Send(message)
+	_, _ = bot.Api.Send(message)
 }

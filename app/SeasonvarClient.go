@@ -1,12 +1,12 @@
 package app
 
 import (
-	"net/url"
-	"net/http"
-	"strconv"
 	"encoding/json"
-	"log"
 	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 )
 

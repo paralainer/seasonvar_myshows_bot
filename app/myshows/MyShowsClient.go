@@ -1,17 +1,17 @@
 package myshows
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
-	"encoding/json"
 )
 
 type EpisodeInfo struct {
-	Id int
-	ShowId int
-	ShowName string
-	SeasonNumber int
+	Id            int
+	ShowId        int
+	ShowName      string
+	SeasonNumber  int
 	EpisodeNumber int
 }
 
@@ -42,13 +42,12 @@ func EpisodeById(id int) *EpisodeInfo {
 		return nil
 	}
 
-
 	episodeJson := dat["result"].(map[string]interface{})
 	episode := &EpisodeInfo{
-		Id: id,
+		Id:            id,
 		EpisodeNumber: int(episodeJson["episodeNumber"].(float64)),
-		SeasonNumber: int(episodeJson["seasonNumber"].(float64)),
-		ShowId: int(episodeJson["showId"].(float64)),
+		SeasonNumber:  int(episodeJson["seasonNumber"].(float64)),
+		ShowId:        int(episodeJson["showId"].(float64)),
 	}
 
 	fmt.Println(episode.ShowId)

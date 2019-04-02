@@ -1,9 +1,19 @@
-FROM golang:1.8.1
+FROM golang:1.12.1 as builder
 
-WORKDIR /go/src/seasonvar_myshows_bot
+ENV GO111MODULE=on
+
+WORKDIR /seasonvar_myshows_bot
+
+COPY go.mod .
+COPY go.sum .
+
+RUN go mod download
+
 COPY . .
 
-RUN go-wrapper download   # "go get -d -v ./..."
-RUN go-wrapper install    # "go install -v ./..."
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main
 
-CMD ["go-wrapper", "run"]
+# final stage
+FROM scratch
+COPY --from=builder /seasonvar_myshows_bot/main /app/
+ENTRYPOINT ["/app/main"]

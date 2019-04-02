@@ -1,9 +1,9 @@
 package main
 
 import (
-	"seasonvar_myshows_bot/app"
-	"os"
 	"log"
+	"os"
+	"seasonvar_myshows_bot/app"
 )
 
 func main() {
@@ -17,6 +17,5 @@ func main() {
 		log.Panic("No SEASONVAR_TOKEN specified")
 	}
 
-	app.StartBot(telegramToken, &app.SeasonvarClient{ApiToken: seasonvarToken});
+	app.StartBot(telegramToken, &app.SeasonvarClient{ApiToken: seasonvarToken})
 }
-
