@@ -193,7 +193,7 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int) {
 				BaseChat: tgbotapi.BaseChat{
 					ChatID:           chatId,
 					ReplyToMessageID: 0,
-					ReplyMarkup:      getNextButton(seasonId, links[0].Season.SeasonNumber, episode),
+					ReplyMarkup:      getNextAndPreviousButtons(seasonId, links[0].Season.SeasonNumber, episode),
 				},
 				Text:                  strings.Join(translations, "\n\n"),
 				DisableWebPagePreview: false,
@@ -220,10 +220,12 @@ func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season, epi
 	_, _ = bot.Api.Send(message)
 }
 
-func getNextButton(seasonId int, seasonNumber int, currentEpisode int) tgbotapi.InlineKeyboardMarkup {
+func getNextAndPreviousButtons(seasonId int, seasonNumber int, currentEpisode int) tgbotapi.InlineKeyboardMarkup {
 	var buttons [][]tgbotapi.InlineKeyboardButton
-	button := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("Next Episode"), fmt.Sprintf("SendById:%d:%d:%d", seasonId, seasonNumber, currentEpisode+1)))
-	buttons = append(buttons, button)
+	nextButton := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("Next Episode"), fmt.Sprintf("SendById:%d:%d:%d", seasonId, seasonNumber, currentEpisode+1)))
+	previousButton := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("Previous Episode"), fmt.Sprintf("SendById:%d:%d:%d", seasonId, seasonNumber, currentEpisode-1)))
+	buttons = append(buttons, nextButton)
+	buttons = append(buttons, previousButton)
 
 	return tgbotapi.NewInlineKeyboardMarkup(buttons...)
 }
