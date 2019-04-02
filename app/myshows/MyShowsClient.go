@@ -36,7 +36,7 @@ func EpisodeById(id int) *EpisodeInfo {
 		return nil
 	}
 	var dat map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&dat)
+	_ = json.NewDecoder(resp.Body).Decode(&dat)
 
 	if dat["result"] == nil {
 		return nil
@@ -82,7 +82,7 @@ func fetchShowNameById(showId int) string {
 		return ""
 	}
 	var dat map[string]interface{}
-	json.NewDecoder(resp.Body).Decode(&dat)
+	_ = json.NewDecoder(resp.Body).Decode(&dat)
 
 	if dat["result"] == nil {
 		return ""
