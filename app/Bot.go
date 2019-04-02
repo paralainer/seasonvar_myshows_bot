@@ -129,12 +129,12 @@ func (bot *TgBot) startBot() {
 
 func (bot *TgBot) handleCallbackQuery(query *tgbotapi.CallbackQuery) {
 	queryParts := strings.Split(query.Data, ":")
-	seasonNumber, e := strconv.Atoi(queryParts[1])
+	seasonNumber, e := strconv.Atoi(queryParts[2])
 	if e != nil {
 		log.Println(e)
 		return
 	}
-	seasonId, e := strconv.Atoi(queryParts[2])
+	seasonId, e := strconv.Atoi(queryParts[1])
 	if e != nil {
 		log.Println(e)
 		return
@@ -195,10 +195,11 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonNumber int, seasonId int
 			translations = append(translations, fmt.Sprintf("%ss%02de%02d [%s](%s)", text, seasonNumber, episode, link.Translation, link.Url.String()))
 		}
 
-		bot.Api.Send(tgbotapi.MessageConfig{
+		_, _ = bot.Api.Send(tgbotapi.MessageConfig{
 			BaseChat: tgbotapi.BaseChat{
 				ChatID:           chatId,
 				ReplyToMessageID: 0,
+				ReplyMarkup:      getNextButton(chatId, seasonId, seasonNumber, episode),
 			},
 			Text:                  strings.Join(translations, "\n\n"),
 			DisableWebPagePreview: false,
@@ -219,7 +220,15 @@ func (bot *TgBot) sendSeasonSelectionButtons(chatId int64, seasons []Season, epi
 
 	message := tgbotapi.NewMessage(chatId, "Select tv show")
 	message.ReplyMarkup = markup
-	bot.Api.Send(message)
+	_, _ = bot.Api.Send(message)
+}
+
+func getNextButton(chatId int64, seasonId int, seasonNumber int, currentEpisode int) tgbotapi.InlineKeyboardMarkup {
+	var buttons [][]tgbotapi.InlineKeyboardButton
+	button := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("Next Episode"), fmt.Sprintf("SendById:%d:%d:%d", seasonId, seasonNumber, currentEpisode+1)))
+	buttons = append(buttons, button)
+
+	return tgbotapi.NewInlineKeyboardMarkup(buttons...)
 }
 
 func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
