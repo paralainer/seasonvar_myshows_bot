@@ -123,6 +123,11 @@ func (bot *TgBot) startBot() {
 			go bot.handleMessage(chatId, text)
 		} else if update.CallbackQuery != nil {
 			go bot.handleCallbackQuery(update.CallbackQuery)
+		} else if update.EditedMessage != nil {
+			text := update.EditedMessage.Text
+			log.Println("Query:" + text)
+			chatId := update.Message.Chat.ID
+			go bot.handleMessage(chatId, text)
 		}
 	}
 }
