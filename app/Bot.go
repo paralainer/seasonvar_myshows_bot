@@ -208,7 +208,7 @@ func (bot *TgBot) sendSeasonEpisode(chatId int64, seasonId int, episode int) {
 	}
 
 	if !found {
-		bot.sendNotFound(chatId)
+		bot.sendNotFoundAndRetry(chatId, seasonId, episode)
 	}
 }
 
@@ -280,4 +280,18 @@ func getMatchedSeasons(query string, seasons []Season, seasonNum int) []Season {
 func (bot *TgBot) sendNotFound(chatId int64) {
 	message := tgbotapi.NewMessage(chatId, "Not found")
 	_, _ = bot.Api.Send(message)
+}
+
+func (bot *TgBot) sendNotFoundAndRetry(chatId int64, seasonId int, episode int) {
+	message := tgbotapi.NewMessage(chatId, "Episode not found")
+	message.ReplyMarkup = getCheckAgainButton(seasonId, episode)
+	_, _ = bot.Api.Send(message)
+}
+
+func getCheckAgainButton(seasonId int, episode int) tgbotapi.InlineKeyboardMarkup {
+	var buttons [][]tgbotapi.InlineKeyboardButton
+	checkAgainButton := tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(fmt.Sprintf("Check Again"), fmt.Sprintf("SendById:%d:%d:%d", seasonId, 0, episode)))
+	buttons = append(buttons, checkAgainButton)
+
+	return tgbotapi.NewInlineKeyboardMarkup(buttons...)
 }
